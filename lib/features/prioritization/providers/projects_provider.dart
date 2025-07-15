@@ -6,9 +6,6 @@ import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
 
-// CHANGED: This function no longer creates a sample project.
-// It simply reads from the box. If the box is empty, it correctly
-// returns an empty list.
 List<Project> _readProjectsFromHive() {
   final box = Hive.box<Project>('projects');
   return box.values.toList();
@@ -17,17 +14,20 @@ List<Project> _readProjectsFromHive() {
 class ProjectsNotifier extends StateNotifier<List<Project>> {
   ProjectsNotifier() : super(_readProjectsFromHive());
 
-  Future<void> _saveStateToHive() async {
+  // Using a more efficient save method that doesn't require clearing the box.
+  Future<void> _saveProjectToHive(Project project) async {
     final box = Hive.box<Project>('projects');
-    await box.clear();
-    for (final project in state) {
-      await box.put(project.id, project);
-    }
+    await box.put(project.id, project);
   }
+
+  Future<void> _deleteProjectFromHive(String projectId) async {
+    final box = Hive.box<Project>('projects');
+    await box.delete(projectId);
+  }
+
 
   // --- PROJECT MANAGEMENT ---
   void addProject(String name) {
-    // CHANGED: A new project now starts with a completely empty list of requirements.
     const List<Requirement> emptyReqs = [];
     final newProject = Project(
       id: _uuid.v4(),
@@ -35,8 +35,8 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
       requirements: emptyReqs,
       initialRequirements: emptyReqs,
     );
-    state = [...state, newProject];
-    _saveStateToHive();
+    state = [newProject, ...state];
+    _saveProjectToHive(newProject);
   }
 
   void editProjectName(String projectId, String newName) {
@@ -46,7 +46,7 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
 
   void deleteProject(String projectId) {
     state = state.where((project) => project.id != projectId).toList();
-    _saveStateToHive();
+    _deleteProjectFromHive(projectId);
   }
 
   // --- REQUIREMENT MANAGEMENT ---
@@ -55,8 +55,8 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
     final project = state.firstWhere((p) => p.id == projectId);
     
     final updatedProject = project.copyWith(
-      requirements: [...project.requirements, newRequirement],
-      initialRequirements: [...project.initialRequirements, newRequirement],
+      requirements: [newRequirement, ...project.requirements],
+      initialRequirements: [newRequirement, ...project.initialRequirements],
     );
     _updateProject(updatedProject);
   }
@@ -64,59 +64,45 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
   void editRequirementText(
       String projectId, String requirementId, String newText) {
     final project = state.firstWhere((p) => p.id == projectId);
-
     Requirement update(Requirement req) =>
         req.id == requirementId ? req.copyWith(text: newText) : req;
-
-    final updatedRequirements = project.requirements.map(update).toList();
-    final updatedInitialRequirements =
-        project.initialRequirements.map(update).toList();
-    
-    _updateProject(project.copyWith(
-      requirements: updatedRequirements,
-      initialRequirements: updatedInitialRequirements,
-    ));
+    final updatedProject = project.copyWith(
+      requirements: project.requirements.map(update).toList(),
+      initialRequirements: project.initialRequirements.map(update).toList(),
+    );
+    _updateProject(updatedProject);
   }
 
   void deleteRequirement(String projectId, String requirementId) {
     final project = state.firstWhere((p) => p.id == projectId);
-    
-    final updatedRequirements =
-        project.requirements.where((r) => r.id != requirementId).toList();
-    final updatedInitialRequirements =
-        project.initialRequirements.where((r) => r.id != requirementId).toList();
-
     final updatedProject = project.copyWith(
-      requirements: updatedRequirements,
-      initialRequirements: updatedInitialRequirements,
+      requirements:
+          project.requirements.where((r) => r.id != requirementId).toList(),
+      initialRequirements:
+          project.initialRequirements.where((r) => r.id != requirementId).toList(),
     );
     _updateProject(updatedProject);
   }
 
   void toggleRequirementDone(String projectId, String requirementId) {
     final project = state.firstWhere((p) => p.id == projectId);
-    
     Requirement toggle(Requirement req) => req.id == requirementId
         ? req.copyWith(isDone: !req.isDone)
         : req;
-
-    final updatedRequirements = project.requirements.map(toggle).toList();
-    final updatedInitialRequirements =
-        project.initialRequirements.map(toggle).toList();
-
-    _updateProject(project.copyWith(
-      requirements: updatedRequirements,
-      initialRequirements: updatedInitialRequirements,
-    ));
+    final updatedProject = project.copyWith(
+      requirements: project.requirements.map(toggle).toList(),
+      initialRequirements: project.initialRequirements.map(toggle).toList(),
+    );
+    _updateProject(updatedProject);
   }
 
-  // --- SORTING & WORKFLOW LOGIC ---
+  // --- SORTING & WORKFLOW LOGIC (Corrected) ---
   void _updateProject(Project updatedProject) {
     state = [
       for (final project in state)
         if (project.id == updatedProject.id) updatedProject else project,
     ];
-    _saveStateToHive();
+    _saveProjectToHive(updatedProject);
   }
 
   void startSorting(String projectId) {
@@ -124,9 +110,11 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
     final undoneReqs = project.initialRequirements.where((r) => !r.isDone).toList();
     final doneReqs = project.initialRequirements.where((r) => r.isDone).toList();
 
+    // THE FIX: We no longer modify `initialRequirements`.
+    // Instead, we use our new `parkedRequirements` field for temporary storage.
     final sortingProject = project.copyWith(
-      requirements: undoneReqs,
-      initialRequirements: doneReqs,
+      requirements: undoneReqs,           // The list to be actively sorted.
+      parkedRequirements: doneReqs,       // The "done" items are safely parked here.
       isSorting: true,
       isFinished: false,
       pass: 0,
@@ -137,8 +125,11 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
   
   void resetProject(String projectId) {
     final project = state.firstWhere((p) => p.id == projectId);
+    // THE FIX: Resetting now restores from the untouched "golden copy"
+    // and clears the temporary parking lot.
     _updateProject(project.copyWith(
       requirements: project.initialRequirements,
+      parkedRequirements: [],
       isSorting: false,
       isFinished: false,
       pass: 0,
@@ -148,8 +139,11 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
   
   void cancelSorting(String projectId) {
     final project = state.firstWhere((p) => p.id == projectId);
+    // THE FIX: Canceling also restores from the untouched "golden copy".
+    // This now works correctly and will not remove your items.
     _updateProject(project.copyWith(
       requirements: project.initialRequirements,
+      parkedRequirements: [],
       isSorting: false
       ));
   }
@@ -195,18 +189,23 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
   }
 
   void _finishSorting(Project project, List<Requirement> sortedList) {
-    final doneItems = project.initialRequirements;
+    // THE FIX: We get the "done" items from the parking lot, not initialRequirements.
+    final doneItems = project.parkedRequirements; 
     final finalFullList = [...sortedList, ...doneItems];
     
     _updateProject(project.copyWith(
       requirements: finalFullList,
-      initialRequirements: finalFullList,
+      initialRequirements: finalFullList, // Now we update the golden copy with the new order.
+      parkedRequirements: [],              // Clear the parking lot, its job is done.
       isSorting: false,
       isFinished: true,
     ));
   }
 }
 
+// NOTE: This provider initialization is the source of the "flash" on app start.
+// While it works, the ideal solution would be to use an AsyncNotifier or
+// override the provider in main.dart as discussed previously.
 final projectsProvider =
     StateNotifierProvider<ProjectsNotifier, List<Project>>((ref) {
   return ProjectsNotifier();

@@ -62,39 +62,9 @@ class PrioritizationScreen extends ConsumerWidget {
       (projects) => projects.firstWhere((p) => p.id == projectId,
           orElse: () => ref.read(projectsProvider).first),
     ));
-
-    final isInitialView = !project.isSorting && !project.isFinished;
-    final canStartSorting = project.requirements.length >= 2;
-
     return Scaffold(
       // NEW: The floating action button is now a Row to hold both buttons
       resizeToAvoidBottomInset: false,
-
-      floatingActionButton: isInitialView
-          ? Padding(
-              padding: const EdgeInsets.only(left: 32.0), // Aligns the Row correctly
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // The "Start" button, now an extended FAB style
-                  ElevatedButton.icon(
-                    onPressed: canStartSorting
-                        ? () => ref
-                            .read(projectsProvider.notifier)
-                            .startSorting(projectId)
-                        : null,
-                    label: const Text('Start Prioritizing'),
-                    icon: const Icon(Icons.swap_vert_rounded),
-                  ),
-                  // The "Add" button
-                  FloatingActionButton(
-                    onPressed: () => _showAddRequirementDialog(context, ref),
-                    child: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-            )
-          : null,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
         child: _buildBody(project),

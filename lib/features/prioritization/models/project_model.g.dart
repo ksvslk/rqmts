@@ -25,13 +25,14 @@ class ProjectAdapter extends TypeAdapter<Project> {
       isFinished: fields[5] as bool,
       pass: fields[6] as int,
       comparison: fields[7] as int,
+      parkedRequirements: (fields[8] as List).cast<Requirement>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, Project obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class ProjectAdapter extends TypeAdapter<Project> {
       ..writeByte(6)
       ..write(obj.pass)
       ..writeByte(7)
-      ..write(obj.comparison);
+      ..write(obj.comparison)
+      ..writeByte(8)
+      ..write(obj.parkedRequirements);
   }
 
   @override

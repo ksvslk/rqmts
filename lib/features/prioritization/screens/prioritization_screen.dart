@@ -1,60 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
-import 'package:prioritize_requirements/features/projects/widgets/comparison_view.dart';
-import 'package:prioritize_requirements/features/projects/widgets/finished_view.dart';
-import 'package:prioritize_requirements/features/projects/widgets/initial_view.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/projects/widgets/comparison_view.dart';
+import 'package:rqmts/features/projects/widgets/finished_view.dart';
+import 'package:rqmts/features/projects/widgets/initial_view.dart';
 
 class PrioritizationScreen extends ConsumerWidget {
   const PrioritizationScreen({super.key, required this.projectId});
   final String projectId;
 
-  void _showAddRequirementDialog(BuildContext context, WidgetRef ref) {
-    final textController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('New Requirement'),
-          content: SizedBox( // NEW: Makes dialog wider
-            width: MediaQuery.of(context).size.width * 0.9,
-            child: TextField(
-              controller: textController,
-              autofocus: true,
-              decoration: const InputDecoration(hintText: 'Requirement'),
-              onSubmitted: (_) { // Allow submitting with the enter key
-                final text = textController.text.trim();
-                if (text.isNotEmpty) {
-                  ref
-                      .read(projectsProvider.notifier)
-                      .addRequirement(projectId, text);
-                }
-                Navigator.of(context).pop();
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final text = textController.text.trim();
-                if (text.isNotEmpty) {
-                  ref
-                      .read(projectsProvider.notifier)
-                      .addRequirement(projectId, text);
-                }
-                Navigator.of(context).pop();
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

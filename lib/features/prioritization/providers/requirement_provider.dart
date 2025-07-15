@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prioritize_requirements/features/prioritization/models/prioritization_state.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/models/prioritization_state.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
 
 final List<Requirement> _initialRequirements = [];
 

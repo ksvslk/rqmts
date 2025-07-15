@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
-import 'package:prioritize_requirements/features/projects/widgets/requirement_card.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/projects/widgets/requirement_card.dart';
 
 class ComparisonView extends ConsumerWidget {
   const ComparisonView({super.key, required this.project});

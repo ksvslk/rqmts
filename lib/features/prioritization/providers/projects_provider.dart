@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
 import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
@@ -27,7 +27,7 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
 
 
   // --- PROJECT MANAGEMENT ---
-  void addProject(String name) {
+  Future<String> addProject(String name) async {
     const List<Requirement> emptyReqs = [];
     final newProject = Project(
       id: _uuid.v4(),
@@ -36,7 +36,8 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
       initialRequirements: emptyReqs,
     );
     state = [newProject, ...state];
-    _saveProjectToHive(newProject);
+    await _saveProjectToHive(newProject); // Assuming _saveProjectToHive is your Hive method
+    return newProject.id;
   }
 
   void editProjectName(String projectId, String newName) {

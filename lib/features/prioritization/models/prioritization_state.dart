@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
 
 @immutable
 class PrioritizationState {

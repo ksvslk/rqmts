@@ -1,4 +1,4 @@
-name: prioritize_requirements
+name: rqmts
 description: "A cozy and friendly app to help you prioritize your tasks and requirements, one bubble at a time."
 publish_to: 'none'
 

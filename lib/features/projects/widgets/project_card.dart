@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
 
 class ProjectCard extends StatelessWidget {
   const ProjectCard({
@@ -17,6 +17,30 @@ class ProjectCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
     final isDarkMode = theme.brightness == Brightness.dark;
 
+    Color _getCornerColor() {
+      // =======================================================
+      // THE FIX IS HERE: Check the new property first.
+      // =======================================================
+
+      // State 1: All requirements are striked off.
+      if (project.isFullyComplete) {
+        // A muted, gray-ish color signifies "archived" or "all done".
+        return colorScheme.primary.withOpacity(0.2); 
+      }
+      // State 2: Prioritization is finished.
+      else if (project.isFinished) {
+        return colorScheme.primary.withOpacity(0.75); 
+      } 
+      // State 3: Sorting is in progress.
+      else if (project.isSorting) {
+        return colorScheme.tertiaryContainer;
+      } 
+      // State 4: Default (Not sorted).
+      else {
+        return colorScheme.onSurfaceVariant.withOpacity(0.5);
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
@@ -30,7 +54,6 @@ class ProjectCard extends StatelessWidget {
           ),
         ],
       ),
-      // ClipRRect ensures the corner triangle is neatly clipped to the card's rounded border
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Material(
@@ -39,7 +62,6 @@ class ProjectCard extends StatelessWidget {
             onTap: onTap,
             child: Stack(
               children: [
-                // --- Main Card Content ---
                 Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -62,16 +84,15 @@ class ProjectCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                // --- NEW: Simple, subtle corner triangle ---
                 Positioned(
                   top: 0,
                   left: 0,
                   child: ClipPath(
                     clipper: _TopLeftCornerTriangleClipper(),
                     child: Container(
-                      width: 30, // The size of the triangle's base
-                      height: 30, // The size of the triangle's height
-                      color: colorScheme.primary.withOpacity(0.2), // Subtle color
+                      width: 30,
+                      height: 30,
+                      color: _getCornerColor(),
                     ),
                   ),
                 ),
@@ -84,7 +105,6 @@ class ProjectCard extends StatelessWidget {
   }
 }
 
-// A custom clipper to create a simple triangle in the top-left corner.
 class _TopLeftCornerTriangleClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {

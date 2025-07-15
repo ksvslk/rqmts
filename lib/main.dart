@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:prioritize_requirements/core/theme.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
-import 'package:prioritize_requirements/features/prioritization/screens/projects_screen.dart';
+import 'package:rqmts/core/theme.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/screens/projects_screen.dart';
 
 
 Future<void> main() async {
@@ -34,7 +34,7 @@ class CozyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'indreq',
+      title: 'rqmts',
       theme: lightTheme,
       darkTheme: darkTheme,
       themeMode: ThemeMode.system,

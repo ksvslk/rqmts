@@ -1,4 +1,4 @@
-package com.example.preq
+package com.indest.rqmts
 
 import io.flutter.embedding.android.FlutterActivity
 

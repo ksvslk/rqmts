@@ -1,10 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
-import 'package:prioritize_requirements/features/projects/widgets/requirement_card.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/projects/widgets/requirement_card.dart';
 import 'package:share_plus/share_plus.dart';
 
 class FinishedView extends ConsumerWidget {
@@ -27,14 +29,60 @@ class FinishedView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-            child: Text(
-              'Prioritized list:',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.headlineSmall,
-            ),
-          ),
+          // =======================================================
+          // THE FIX IS HERE: The header is now styled like InitialView.
+          // =======================================================
+       Padding(
+                      padding: const EdgeInsets.only(top: 20.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Back button on the left
+                          IconButton(
+                            icon: Platform.isAndroid
+                                ? const Icon(Icons.arrow_back)
+                                : const Icon(Icons.arrow_back_ios_new),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            iconSize: 24,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          // Expanded center section for title and subtitle
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  project.name,
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 26,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 4.0, bottom: 10.0),
+                                  child: Text(
+                                    'Prioritized',
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onBackground
+                                          .withOpacity(0.5),
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Invisible spacer to balance the layout
+                          const SizedBox(width: 48), // Same width as IconButton
+                        ],
+                      ),
+                    ),
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -43,7 +91,8 @@ class FinishedView extends ConsumerWidget {
                 return RequirementCard(
                   requirement: project.requirements[index],
                   isPrioritized: true,
-                  rank: index + 1, projectId: project.id,
+                  rank: index + 1, 
+                  projectId: project.id,
                 );
               },
             ),
@@ -61,7 +110,7 @@ class FinishedView extends ConsumerWidget {
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
-                          const SnackBar(content: Text('Copied list!')));
+                          const SnackBar(content: Text('Copied list')));
                   },
                 ),
                 const SizedBox(width: 12),
@@ -75,7 +124,7 @@ class FinishedView extends ConsumerWidget {
                     ScaffoldMessenger.of(context)
                       ..hideCurrentSnackBar()
                       ..showSnackBar(
-                          const SnackBar(content: Text('Copied text!')));
+                          const SnackBar(content: Text('Copied text')));
                   },
                 ),
                 const SizedBox(width: 12),
@@ -92,7 +141,6 @@ class FinishedView extends ConsumerWidget {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
-            // CHANGED: This button now resets the project to the editing view
             child: ElevatedButton(
               child: const Text('Edit & Re-sort'),
               onPressed: () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
 
 // CHANGED: The card is now a ConsumerWidget to interact with the provider.
 class RequirementCard extends ConsumerWidget {

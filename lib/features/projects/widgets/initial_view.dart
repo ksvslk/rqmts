@@ -1,10 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/models/requirement_model.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
-import 'package:prioritize_requirements/features/projects/widgets/requirement_card.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/models/requirement_model.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/projects/widgets/requirement_card.dart';
 
 class InitialView extends ConsumerStatefulWidget {
   const InitialView({super.key, required this.project});
@@ -32,12 +34,12 @@ class _InitialViewState extends ConsumerState<InitialView> {
   }
 
   void _onFocusChange() {
-    if (!_inputFocusNode.hasFocus) {
+    if (mounted) {
       setState(() {
-        _editingRequirement = null;
+        if (!_inputFocusNode.hasFocus) {
+          _editingRequirement = null;
+        }
       });
-    } else {
-      setState(() {});
     }
   }
 
@@ -57,11 +59,10 @@ class _InitialViewState extends ConsumerState<InitialView> {
     final theme = Theme.of(context);
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final isInputActive = _inputFocusNode.hasFocus;
-    
+ final bool isListEmpty = widget.project.requirements.isEmpty;
     final canStartSorting =
         widget.project.requirements.where((r) => !r.isDone).length >= 2;
-    final hasUnfinishedReqs =
-        widget.project.requirements.any((r) => !r.isDone);
+    final hasUnfinishedReqs = widget.project.requirements.any((r) => !r.isDone);
 
     return PopScope(
       canPop: false,
@@ -79,38 +80,64 @@ class _InitialViewState extends ConsumerState<InitialView> {
           AbsorbPointer(
             absorbing: isInputActive,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 140.0),
+           padding: EdgeInsets.only(bottom: isListEmpty ? 70 : 140.0),
               child: SafeArea(
+                bottom: false, // Prevents layout jank
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0),
-                          child: Text(
-                            widget.project.name,
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontSize: 26,
+                    // Replace your existing header Column with this Row structure:
+
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Back button on the left
+                          IconButton(
+                            icon: Platform.isAndroid
+                                ? const Icon(Icons.arrow_back)
+                                : const Icon(Icons.arrow_back_ios_new),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            iconSize: 24,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          // Expanded center section for title and subtitle
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Text(
+                                  widget.project.name,
+                                  textAlign: TextAlign.center,
+                                  style:
+                                      theme.textTheme.headlineSmall?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontSize: 26,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 4.0, bottom: 10.0),
+                                  child: Text(
+                                    'Requirements',
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onBackground
+                                          .withOpacity(0.5),
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4.0, bottom: 10.0),
-                          child: Text(
-                            'Requirements',
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color:
-                                  theme.colorScheme.onBackground.withOpacity(0.5),
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                        ),
-                      ],
+                          // Invisible spacer to balance the layout
+                          const SizedBox(width: 48), // Same width as IconButton
+                        ],
+                      ),
                     ),
                     Expanded(
                       child: widget.project.requirements.isEmpty
@@ -118,12 +145,17 @@ class _InitialViewState extends ConsumerState<InitialView> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Image.asset(
-                                    'assets/icons/sleeping.png',
-                                    width: 150,
-                                    opacity: const AlwaysStoppedAnimation(0.6),
+                                  Flexible(
+                                    // 👈 Wrap the Image with Flexible
+                                    child: Image.asset(
+                                      'assets/icons/awake.png',
+                                      // No need for a fixed width here, Flexible handles it.
+                                      width: 150,
+                                      fit: BoxFit.scaleDown,
+                                      opacity:
+                                          const AlwaysStoppedAnimation(0.6),
+                                    ),
                                   ),
-                                  const SizedBox(height: 24),
                                   Text(
                                     'No requirements yet.\nAdd one below!',
                                     textAlign: TextAlign.center,
@@ -161,8 +193,8 @@ class _InitialViewState extends ConsumerState<InitialView> {
                                             SlidableAction(
                                               onPressed: (_) {
                                                 ref
-                                                    .read(
-                                                        projectsProvider.notifier)
+                                                    .read(projectsProvider
+                                                        .notifier)
                                                     .deleteRequirement(
                                                         widget.project.id,
                                                         requirement.id);
@@ -189,19 +221,19 @@ class _InitialViewState extends ConsumerState<InitialView> {
               ),
             ),
           ),
-
-          if (isInputActive)
-            GestureDetector(
-              onTap: _finishEditing,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: isInputActive ? 1.0 : 0.0,
+          AnimatedOpacity(
+            opacity: isInputActive ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 200),
+            child: IgnorePointer(
+              ignoring: !isInputActive,
+              child: GestureDetector(
+                onTap: _finishEditing,
                 child: Container(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withOpacity(0.8),
                 ),
               ),
             ),
-          
+          ),
           Align(
             alignment: Alignment.bottomCenter,
             child: AnimatedContainer(
@@ -213,7 +245,7 @@ class _InitialViewState extends ConsumerState<InitialView> {
                 children: [
                   if (!isInputActive)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 24, 8),
+                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: canStartSorting
@@ -223,12 +255,8 @@ class _InitialViewState extends ConsumerState<InitialView> {
                                       .read(projectsProvider.notifier)
                                       .startSorting(widget.project.id);
                                 },
-                                icon: const Icon(Icons.play_arrow_sharp),
+                                icon: const Icon(Icons.move_up),
                                 label: const Text('Start Prioritizing'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                ),
                               )
                             : hasUnfinishedReqs
                                 ? Text(
@@ -241,8 +269,6 @@ class _InitialViewState extends ConsumerState<InitialView> {
                                 : const SizedBox.shrink(),
                       ),
                     ),
-                  
-                  // Reference to the new, correct widget.
                   _AddRequirementInput(
                     projectId: widget.project.id,
                     editingRequirement: _editingRequirement,
@@ -259,9 +285,6 @@ class _InitialViewState extends ConsumerState<InitialView> {
   }
 }
 
-// ===========================================================================
-// THE FIX IS HERE: The new _AddRequirementInput widget, implemented correctly.
-// ===========================================================================
 class _AddRequirementInput extends ConsumerStatefulWidget {
   final String projectId;
   final Requirement? editingRequirement;
@@ -286,7 +309,6 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill the text field if we are editing an existing requirement.
     if (widget.editingRequirement != null) {
       _controller.text = widget.editingRequirement!.text;
     }
@@ -295,17 +317,13 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
   @override
   void didUpdateWidget(covariant _AddRequirementInput oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // This handles the state change when the user taps the "Edit" button.
     if (widget.editingRequirement != oldWidget.editingRequirement) {
       if (widget.editingRequirement != null) {
-        // We are now editing, so update the controller's text.
         _controller.text = widget.editingRequirement!.text;
-        // Move the cursor to the end of the text.
         _controller.selection = TextSelection.fromPosition(
           TextPosition(offset: _controller.text.length),
         );
       } else {
-        // We are back in "add" mode, so clear the controller.
         _controller.clear();
       }
     }
@@ -317,30 +335,26 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
     super.dispose();
   }
 
-  /// This method intelligently decides whether to add or edit a requirement.
   void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
     if (widget.editingRequirement != null) {
-      // We are in edit mode.
       ref.read(projectsProvider.notifier).editRequirementText(
             widget.projectId,
             widget.editingRequirement!.id,
             text,
           );
     } else {
-      // We are in add mode.
-      ref.read(projectsProvider.notifier).addRequirement(widget.projectId, text);
+      ref
+          .read(projectsProvider.notifier)
+          .addRequirement(widget.projectId, text);
     }
 
-    // After submitting, decide what to do next.
     if (widget.editingRequirement == null) {
-      // If we were adding, clear the text to allow adding another quickly.
       _controller.clear();
       widget.focusNode.requestFocus();
     } else {
-      // If we were editing, call the callback to exit edit mode.
       widget.onFinished();
     }
   }
@@ -359,7 +373,6 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
         child: Row(
           children: [
-            // Conditionally show a "Cancel" button only when editing.
             if (isEditing)
               IconButton(
                 icon: const Icon(Icons.cancel_outlined),
@@ -372,7 +385,7 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: colorScheme.surfaceContainer,
-                  hintText: isEditing ? 'Edit requirement...' : 'Add new requirement...',
+                  hintText: isEditing ? 'Edit requirement' : 'New requirement',
                   counterText: "",
                   isDense: true,
                   border: OutlineInputBorder(
@@ -387,7 +400,6 @@ class _AddRequirementInputState extends ConsumerState<_AddRequirementInput> {
               ),
             ),
             const SizedBox(width: 8),
-            // Conditionally change the icon based on the mode.
             IconButton(
               icon: Icon(isEditing ? Icons.check_circle : Icons.add_circle),
               iconSize: 32,

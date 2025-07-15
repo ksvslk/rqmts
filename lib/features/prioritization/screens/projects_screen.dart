@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:prioritize_requirements/features/prioritization/models/project_model.dart';
-import 'package:prioritize_requirements/features/prioritization/providers/projects_provider.dart';
-import 'package:prioritize_requirements/features/prioritization/screens/prioritization_screen.dart';
-import 'package:prioritize_requirements/features/projects/widgets/project_card.dart';
+import 'package:rqmts/features/prioritization/models/project_model.dart';
+import 'package:rqmts/features/prioritization/providers/projects_provider.dart';
+import 'package:rqmts/features/prioritization/screens/prioritization_screen.dart';
+import 'package:rqmts/features/projects/widgets/project_card.dart';
 
 class ProjectsScreen extends ConsumerStatefulWidget {
   const ProjectsScreen({super.key});
@@ -31,12 +31,12 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   }
 
   void _onFocusChange() {
-    if (!_inputFocusNode.hasFocus) {
+    if (mounted) {
       setState(() {
-        _editingProject = null;
+        if (!_inputFocusNode.hasFocus) {
+          _editingProject = null;
+        }
       });
-    } else {
-      setState(() {});
     }
   }
 
@@ -48,8 +48,33 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   }
 
   void _finishEditing() {
-    _inputFocusNode.unfocus();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
+
+  void _navigateToProject(String projectId) {
+    _finishEditing();
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                PrioritizationScreen(
+              projectId: projectId,
+            ),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 250),
+          ),
+        );
+      }
+    });
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +88,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
+          // LAYER 1: The main list content
           AbsorbPointer(
             absorbing: isInputActive,
             child: Padding(
@@ -85,17 +111,23 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                     ),
                     Expanded(
                       child: projects.isEmpty
-                          ? Center(
+                          ? 
+                          Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Image.asset(
-                                    'assets/icons/sleeping.png',
-                                    width: 150,
-                                    opacity: const AlwaysStoppedAnimation(0.6),
+                                  Flexible(
+                                    // 👈 Wrap the Image with Flexible
+                                    child: Image.asset(
+                                      'assets/icons/sleeping.png',
+                                      // No need for a fixed width here, Flexible handles it.
+                                      width: 150,
+                                      fit: BoxFit.scaleDown,
+                                      opacity:
+                                          const AlwaysStoppedAnimation(0.6),
+                                    ),
                                   ),
-                                  const SizedBox(height: 24),
-                                  Text(
+                                    Text(
                                     'No projects yet.\nAdd one below!',
                                     textAlign: TextAlign.center,
                                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -106,7 +138,8 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                               ),
                             )
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: projects.length,
                               itemBuilder: (context, index) {
                                 final project = projects[index];
@@ -149,34 +182,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                                   ),
                                   child: ProjectCard(
                                     project: project,
-                                    // =======================================================
-                                    // THE FIX IS HERE: The navigation code was missing and is now restored.
-                                    // =======================================================
-                                    onTap: () {
-                                      // Unfocus before navigating away to prevent keyboard issues on return.
-                                      _inputFocusNode.unfocus();
-                                      Navigator.push(
-                                        context,
-                                        PageRouteBuilder(
-                                          pageBuilder: (context, animation,
-                                                  secondaryAnimation) =>
-                                              PrioritizationScreen(
-                                            projectId: project.id,
-                                          ),
-                                          transitionsBuilder: (context,
-                                              animation,
-                                              secondaryAnimation,
-                                              child) {
-                                            return FadeTransition(
-                                              opacity: animation,
-                                              child: child,
-                                            );
-                                          },
-                                          transitionDuration:
-                                              const Duration(milliseconds: 250),
-                                        ),
-                                      );
-                                    },
+                                    onTap: () => _navigateToProject(project.id),
                                   ),
                                 );
                               },
@@ -187,18 +193,28 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
               ),
             ),
           ),
-          
-          if (isInputActive)
-            GestureDetector(
-              onTap: _finishEditing,
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 200),
-                opacity: isInputActive ? 1.0 : 0.0,
+
+          // =======================================================
+          // THE FIX IS HERE: The overlay is now always in the tree
+          // and its opacity is animated.
+          // =======================================================
+          AnimatedOpacity(
+            // The opacity is controlled by our state variable.
+            opacity: isInputActive ? 1.0 : 0.0,
+            // The duration of the fade in/out animation.
+            duration: const Duration(milliseconds: 200),
+            // When opacity is 0, this widget and its children are not tappable.
+            // But we add IgnorePointer for belt-and-braces safety.
+            child: IgnorePointer(
+              ignoring: !isInputActive,
+              child: GestureDetector(
+                onTap: _finishEditing,
                 child: Container(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withOpacity(0.8),
                 ),
               ),
             ),
+          ),
           
           Align(
             alignment: Alignment.bottomCenter,
@@ -210,6 +226,9 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                 editingProject: _editingProject,
                 focusNode: _inputFocusNode,
                 onFinished: _finishEditing,
+                onProjectCreated: (projectId) {
+                  _navigateToProject(projectId);
+                },
               ),
             ),
           ),
@@ -224,11 +243,13 @@ class _AddProjectInput extends ConsumerStatefulWidget {
   final Project? editingProject;
   final FocusNode focusNode;
   final VoidCallback onFinished;
+  final Function(String) onProjectCreated;
 
   const _AddProjectInput({
     this.editingProject,
     required this.focusNode,
     required this.onFinished,
+    required this.onProjectCreated,
   });
 
   @override
@@ -237,6 +258,7 @@ class _AddProjectInput extends ConsumerStatefulWidget {
 
 class _AddProjectInputState extends ConsumerState<_AddProjectInput> {
   final _controller = TextEditingController();
+  bool _isAdding = false;
 
   @override
   void initState() {
@@ -267,7 +289,8 @@ class _AddProjectInputState extends ConsumerState<_AddProjectInput> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_isAdding) return;
     final name = _controller.text.trim();
     if (name.isEmpty) return;
 
@@ -276,15 +299,14 @@ class _AddProjectInputState extends ConsumerState<_AddProjectInput> {
             widget.editingProject!.id,
             name,
           );
-    } else {
-      ref.read(projectsProvider.notifier).addProject(name);
-    }
-
-    if (widget.editingProject == null) {
-      _controller.clear();
-      widget.focusNode.requestFocus();
-    } else {
       widget.onFinished();
+    } else {
+      setState(() => _isAdding = true);
+      final newProjectId = await ref.read(projectsProvider.notifier).addProject(name);
+      if (!mounted) return;
+      _controller.clear();
+      widget.onProjectCreated(newProjectId);
+      setState(() => _isAdding = false);
     }
   }
 
@@ -314,7 +336,7 @@ class _AddProjectInputState extends ConsumerState<_AddProjectInput> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: colorScheme.surfaceContainer,
-                  hintText: isEditing ? 'Rename project...' : 'Add new project...',
+                  hintText: isEditing ? 'Rename project' : 'New project name',
                   counterText: "",
                   isDense: true,
                   border: OutlineInputBorder(
@@ -329,12 +351,21 @@ class _AddProjectInputState extends ConsumerState<_AddProjectInput> {
               ),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(isEditing ? Icons.check_circle : Icons.add_circle),
-              iconSize: 32,
-              color: colorScheme.primary,
-              onPressed: _submit,
-            )
+            _isAdding
+                ? const Padding(
+                    padding: EdgeInsets.all(10.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                  )
+                : IconButton(
+                    icon: Icon(isEditing ? Icons.check_circle : Icons.add_circle),
+                    iconSize: 32,
+                    color: colorScheme.primary,
+                    onPressed: _submit,
+                  ),
           ],
         ),
       ),

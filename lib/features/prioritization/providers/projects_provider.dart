@@ -6,6 +6,12 @@ import 'package:uuid/uuid.dart';
 
 const _uuid = Uuid();
 
+String _comparisonKey(String leftId, String rightId) {
+  return leftId.compareTo(rightId) < 0
+      ? '$leftId|$rightId'
+      : '$rightId|$leftId';
+}
+
 List<Project> _readProjectsFromHive() {
   final box = Hive.box<Project>('projects');
   return box.values.toList();
@@ -108,29 +114,35 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
 
   void startSorting(String projectId) {
     final project = state.firstWhere((p) => p.id == projectId);
-    final undoneReqs = project.initialRequirements.where((r) => !r.isDone).toList();
+    final undoneReqs =
+        project.initialRequirements.where((r) => !r.isDone).toList();
     final doneReqs = project.initialRequirements.where((r) => r.isDone).toList();
 
-    // THE FIX: We no longer modify `initialRequirements`.
-    // Instead, we use our new `parkedRequirements` field for temporary storage.
     final sortingProject = project.copyWith(
-      requirements: undoneReqs,           // The list to be actively sorted.
-      parkedRequirements: doneReqs,       // The "done" items are safely parked here.
+      requirements: undoneReqs,
+      parkedRequirements: doneReqs,
+      comparisonWinners: const {},
       isSorting: true,
       isFinished: false,
       pass: 0,
       comparison: 0,
     );
-     _updateProject(sortingProject);
+
+    _advanceSorting(
+      sortingProject,
+      List<Requirement>.from(undoneReqs),
+      pass: 0,
+      comparison: 0,
+      comparisonWinners: const {},
+    );
   }
   
   void resetProject(String projectId) {
     final project = state.firstWhere((p) => p.id == projectId);
-    // THE FIX: Resetting now restores from the untouched "golden copy"
-    // and clears the temporary parking lot.
     _updateProject(project.copyWith(
       requirements: project.initialRequirements,
       parkedRequirements: [],
+      comparisonWinners: const {},
       isSorting: false,
       isFinished: false,
       pass: 0,
@@ -140,13 +152,12 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
   
   void cancelSorting(String projectId) {
     final project = state.firstWhere((p) => p.id == projectId);
-    // THE FIX: Canceling also restores from the untouched "golden copy".
-    // This now works correctly and will not remove your items.
     _updateProject(project.copyWith(
       requirements: project.initialRequirements,
       parkedRequirements: [],
-      isSorting: false
-      ));
+      comparisonWinners: const {},
+      isSorting: false,
+    ));
   }
 
   void userMadeChoice(String projectId, Requirement chosenRequirement) {
@@ -164,6 +175,14 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
 
     final item1 = currentList[j];
     final item2 = currentList[j + 1];
+    if (chosenRequirement.id != item1.id && chosenRequirement.id != item2.id) {
+      return;
+    }
+
+    final comparisonWinners = {
+      ...project.comparisonWinners,
+      _comparisonKey(item1.id, item2.id): chosenRequirement.id,
+    };
 
     if (chosenRequirement.id == item2.id) {
       currentList[j] = item2;
@@ -178,28 +197,75 @@ class ProjectsNotifier extends StateNotifier<List<Project>> {
       nextComparison = 0;
     }
 
-    if (nextPass >= currentList.length - 1 || currentList.length < 2) {
-      _finishSorting(project, currentList);
-    } else {
-      _updateProject(project.copyWith(
-        requirements: currentList,
-        pass: nextPass,
-        comparison: nextComparison,
-      ));
+    _advanceSorting(
+      project,
+      currentList,
+      pass: nextPass,
+      comparison: nextComparison,
+      comparisonWinners: comparisonWinners,
+    );
+  }
+
+  void _advanceSorting(
+    Project project,
+    List<Requirement> currentList, {
+    required int pass,
+    required int comparison,
+    required Map<String, String> comparisonWinners,
+  }) {
+    var nextPass = pass;
+    var nextComparison = comparison;
+
+    while (currentList.length >= 2 && nextPass < currentList.length - 1) {
+      if (nextComparison + 1 >= currentList.length) {
+        break;
+      }
+
+      final item1 = currentList[nextComparison];
+      final item2 = currentList[nextComparison + 1];
+      final cachedWinnerId =
+          comparisonWinners[_comparisonKey(item1.id, item2.id)];
+
+      if (cachedWinnerId == null ||
+          (cachedWinnerId != item1.id && cachedWinnerId != item2.id)) {
+        _updateProject(project.copyWith(
+          requirements: currentList,
+          pass: nextPass,
+          comparison: nextComparison,
+          comparisonWinners: comparisonWinners,
+          isSorting: true,
+        ));
+        return;
+      }
+
+      if (cachedWinnerId == item2.id) {
+        currentList[nextComparison] = item2;
+        currentList[nextComparison + 1] = item1;
+      }
+
+      nextComparison++;
+      if (nextComparison >= currentList.length - nextPass - 1) {
+        nextPass++;
+        nextComparison = 0;
+      }
     }
+
+    _finishSorting(project, currentList);
   }
 
   void _finishSorting(Project project, List<Requirement> sortedList) {
-    // THE FIX: We get the "done" items from the parking lot, not initialRequirements.
-    final doneItems = project.parkedRequirements; 
+    final doneItems = project.parkedRequirements;
     final finalFullList = [...sortedList, ...doneItems];
     
     _updateProject(project.copyWith(
       requirements: finalFullList,
-      initialRequirements: finalFullList, // Now we update the golden copy with the new order.
-      parkedRequirements: [],              // Clear the parking lot, its job is done.
+      initialRequirements: finalFullList,
+      parkedRequirements: [],
+      comparisonWinners: const {},
       isSorting: false,
       isFinished: true,
+      pass: 0,
+      comparison: 0,
     ));
   }
 }

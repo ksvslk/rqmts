@@ -23,6 +23,8 @@ class Project extends HiveObject {
   final int comparison;
   @HiveField(8)
   final List<Requirement> parkedRequirements;
+  @HiveField(9)
+  final Map<String, String> comparisonWinners;
 
   Project({
     required this.id,
@@ -34,6 +36,7 @@ class Project extends HiveObject {
     this.pass = 0,
     this.comparison = 0,
     this.parkedRequirements = const [],
+    this.comparisonWinners = const {},
   });
   
   // =======================================================
@@ -58,6 +61,7 @@ class Project extends HiveObject {
     int? pass,
     int? comparison,
     List<Requirement>? parkedRequirements,
+    Map<String, String>? comparisonWinners,
   }) {
     return Project(
       id: id ?? this.id,
@@ -69,6 +73,7 @@ class Project extends HiveObject {
       pass: pass ?? this.pass,
       comparison: comparison ?? this.comparison,
       parkedRequirements: parkedRequirements ?? this.parkedRequirements,
+      comparisonWinners: comparisonWinners ?? this.comparisonWinners,
     );
   }
 }

@@ -26,13 +26,15 @@ class ProjectAdapter extends TypeAdapter<Project> {
       pass: fields[6] as int,
       comparison: fields[7] as int,
       parkedRequirements: (fields[8] as List).cast<Requirement>(),
+      comparisonWinners:
+          (fields[9] as Map?)?.cast<String, String>() ?? const {},
     );
   }
 
   @override
   void write(BinaryWriter writer, Project obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -50,7 +52,9 @@ class ProjectAdapter extends TypeAdapter<Project> {
       ..writeByte(7)
       ..write(obj.comparison)
       ..writeByte(8)
-      ..write(obj.parkedRequirements);
+      ..write(obj.parkedRequirements)
+      ..writeByte(9)
+      ..write(obj.comparisonWinners);
   }
 
   @override

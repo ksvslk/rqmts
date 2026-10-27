@@ -1,35 +1,26 @@
-# Prequ ✨ - Your Cozy Requirement Prioritizer
+<p align="center">
+  <img src=".github/icon.png" width="140" alt="rqmts app icon">
+</p>
 
-A friendly Flutter app designed to make prioritizing requirements simple, intuitive, and maybe even a little fun. We use a bubble sort approach to help you focus on what's most important, one decision at a time.
+<h1 align="center">rqmts: prioritize requirements</h1>
 
-## Our Vision: Cozy & Performant
+<p align="center">Compare two requirements at a time and pick the more important one. The app sorts the whole list for you.</p>
 
-Our goal is to create an experience that feels like a warm conversation rather than a sterile tool. This means:
-- **Friendly UI**: Soft colors, gentle animations, and clear, encouraging language. We recommend a warm pastel color palette and a friendly font like `Nunito` or `Lato` from Google Fonts.
-- **Lag-Free Experience**: Performance is a key feature. The app should feel responsive and smooth, never getting in the way of your workflow.
-- **Simplicity**: Focusing on the core task of prioritization without unnecessary clutter.
+<p align="center">
+  <a href="https://apps.apple.com/app/id6748651044"><img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" height="40" align="middle" alt="Download on the App Store"></a>
+  &nbsp;
+  <a href="https://play.google.com/store/apps/details?id=com.indest.rqmts"><img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="60" align="middle" alt="Get it on Google Play"></a>
+</p>
 
-## The "Prioritize" Button
+<p align="center">Flutter · Riverpod · Hive</p>
 
-As the main action of the app, the "Prioritize" button should be special. We suggest making it a prominent `ElevatedButton` with the following characteristics:
+## About the code
 
-```dart
-ElevatedButton.icon(
-  icon: Icon(Icons.swap_vert_rounded),
-  label: Text('Prioritize'),
-  onPressed: () {
-    // Start the bubble sort logic
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.deepPurple[300], // A friendly, warm color
-    foregroundColor: Colors.white,
-    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-    textStyle: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.bold,
-    ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-    ),
-  ),
-)
+I built it with AI coding agents, starting in July 2025.
+
+## Known issues
+
+- There are no automated tests yet.
+- The code generation packages (hive_generator, build_runner) need updating before it builds with Flutter 3.38.
+
+© 2025–2026 Indest OÜ. All rights reserved.
